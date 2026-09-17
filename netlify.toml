@@ -1,0 +1,9 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Serve calc.html at exactly /calc (URL stays /calc, no .html, no trailing slash)
+[[redirects]]
+  from = "/calc"
+  to = "/calc.html"
+  status = 200
