@@ -254,9 +254,9 @@
      } else if (v[0] === v[1] || v[1] === v[2] || v[0] === v[2]) {
         const pay = Math.round((TWO_MATCH_PAY - (0.5 + Math.random() * 4.5)) * 100) / 100;
         changeBalance(pay);
-        demo.textContent = "Double! Enjoy like $" + pay + " or something, I'm rounding.";
+        demo.textContent = "Match! Enjoy like $" + pay + " idk, I'm rounding.";
      } else {
-        demo.textContent = "Hah loser what did you expect. $" + SPIN_COST + ".";
+        demo.textContent = "Hah! Loser! what did you expect... $" + SPIN_COST + ".";
       }
       spinBtn.disabled = false;
     }
@@ -274,7 +274,7 @@
     const upMsg = document.getElementById("upMsg");
     const upBtn = document.getElementById("upBtn");
 
-    const MIN_CHANCE = 1, MAX_CHANCE = 75;
+    const MIN_CHANCE = 1, MAX_CHANCE = 65;
     const CIRC = 2 * Math.PI * 80;   // circumference of the ring
     let pointerAngle = 0;            // keeps growing so it always spins forward
     let spinning = false;
