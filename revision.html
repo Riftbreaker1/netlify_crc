@@ -149,6 +149,13 @@
 
     .login-wrap { width: 100%; max-width: 22rem; margin-top: 4rem; }
     .who-line { font-size: 0.9rem; color: #e3f6fd; margin-top: -1rem; margin-bottom: 1.5rem; }
+    /* ---------- leaderboard ---------- */
+    .board { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    .board th { text-align: left; color: #2b6e8a; font-weight: 600; padding: 0.3rem 0.5rem; border-bottom: 2px solid #005a80; }
+    .board td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid #cdeefb; }
+    .board td.num, .board th.num { text-align: right; }
+    .board tr.me td { background: #d4f1fc; font-weight: 700; }
+    .board-empty { color: #2b6e8a; font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -187,6 +194,17 @@
       </div>
       <p id="demo" class="msg"></p>
       <button id="spinBtn" onclick="spin()">SPIN</button>
+    </div>
+
+    <!-- TOP 10 -->
+    <div class="game">
+      <h2>Top 10 wins</h2>
+      <p class="hint">Biggest single-roll profits from everyone. Updates every 2 rolls.</p>
+      <table class="board">
+        <thead><tr><th>#</th><th>Player</th><th>Game</th><th class="num">Profit</th></tr></thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+      <p id="boardEmpty" class="board-empty">No wins yet. Be the first.</p>
     </div>
 
     <!-- UPGRADER -->
@@ -301,12 +319,15 @@
       if (v[0] === v[1] && v[1] === v[2]) {
         changeBalance(THREE_MATCH_PAY);
         demo.textContent = "GOLD GOLD GOLD! $" + THREE_MATCH_PAY + "!";
+        recordRoll("Slots", THREE_MATCH_PAY - SPIN_COST);
      } else if (v[0] === v[1] || v[1] === v[2] || v[0] === v[2]) {
         const pay = Math.round((TWO_MATCH_PAY - (0.5 + Math.random() * 4.5)) * 100) / 100;
         changeBalance(pay);
         demo.textContent = "Match! Enjoy like $" + pay + " idk, I'm rounding.";
+        recordRoll("Slots", pay - SPIN_COST);
      } else {
         demo.textContent = "Hah! Loser! what did you expect... $" + SPIN_COST + ".";
+        recordRoll("Slots", -SPIN_COST);
       }
       spinBtn.disabled = false;
     }
@@ -399,11 +420,13 @@
           centerBig.textContent = "WIN";
           centerSmall.textContent = "+$" + payout;
           upMsg.textContent = "Upgraded! You won $" + payout + ".";
+          recordRoll("Upgrader", payout - bet);
         } else {
           wheelCenter.className = "wheel-center lose";
           centerBig.textContent = "LOSE";
           centerSmall.textContent = "-$" + bet;
           upMsg.textContent = "Missed, you lost $" + bet + ".";
+          recordRoll("Upgrader", -bet);
         }
         spinning = false;
         upBtn.disabled = false;
@@ -412,6 +435,92 @@
     }
 
     refreshOdds();
+    /* =======================================================
+       TOP 10 LEADERBOARD  (netlify/functions/leaderboard.js)
+       ======================================================= */
+    const SYNC_EVERY = 2;              // talk to the server every 2 rolls
+    const boardBody = document.getElementById("boardBody");
+    const boardEmpty = document.getElementById("boardEmpty");
+
+    let top10 = [];                    // our latest copy of the server's list
+    let rollCount = 0;                 // rolls of either game since page load
+    let bestPending = null;            // best win not sent yet: { game, profit }
+
+    // Called by both games after every roll with that roll's profit.
+    // Wins are positive (what you got back minus what you paid), losses negative.
+    function recordRoll(game, profit) {
+      profit = Math.round(profit * 100) / 100;
+
+      if (profit > 0 && (!bestPending || profit > bestPending.profit)) {
+        bestPending = { game, profit };
+      }
+
+      rollCount++;
+      if (rollCount % SYNC_EVERY === 0) syncLeaderboard();
+    }
+
+    // Would this profit get onto the board as we last saw it?
+    function makesTop10(profit) {
+      if (top10.length < 10) return true;
+      return profit > top10[top10.length - 1].profit;
+    }
+
+    async function syncLeaderboard() {
+      const name = sessionStorage.getItem("chat_name");
+      const password = sessionStorage.getItem("chat_pw");
+      if (!name || !password) return;
+
+      const toSend = bestPending;
+      bestPending = null;
+
+      // Only POST if it's worth it; otherwise just refresh the list.
+      const sending = toSend && makesTop10(toSend.profit);
+
+      let res;
+      try {
+        res = await fetch("/api/leaderboard", sending ? {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-room-password": password },
+          body: JSON.stringify({ name, game: toSend.game, profit: toSend.profit }),
+        } : {
+          headers: { "x-room-password": password },
+        });
+      } catch {
+        if (sending) bestPending = toSend;   // network blip: try again next sync
+        return;
+      }
+      if (!res.ok) return;
+
+      try {
+        const data = await res.json();
+        top10 = data.top || [];
+        renderLeaderboard();
+      } catch {}
+    }
+
+    function loadLeaderboard() {
+      syncLeaderboard();               // nothing pending yet, so this is just a GET
+    }
+
+    function renderLeaderboard() {
+      const me = sessionStorage.getItem("chat_name");
+      boardBody.innerHTML = "";
+      boardEmpty.classList.toggle("hidden", top10.length > 0);
+
+      top10.forEach((entry, i) => {
+        const tr = document.createElement("tr");
+        if (entry.name === me) tr.className = "me";
+        const cells = [i + 1, entry.name, entry.game, "+$" + entry.profit.toFixed(2)];
+        cells.forEach((value, c) => {
+          const td = document.createElement("td");
+          td.textContent = value;      // textContent, so names can't inject HTML
+          if (c === 3) td.className = "num";
+          tr.appendChild(td);
+        });
+        boardBody.appendChild(tr);
+      });
+    }
+
     /* =======================================================
        SIGN IN GATE  (same ROOM_PASSWORD as /calc)
        ======================================================= */
@@ -462,6 +571,7 @@
       els.whoami.textContent = name;
       els.loginView.classList.add("hidden");
       els.gameView.classList.remove("hidden");
+      loadLeaderboard();
     }
 
     function signOut() {
