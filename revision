@@ -1,0 +1,14 @@
+<body>
+<div class="container">  
+<h1> CASINO </h1>
+  <p id="demo"></p>
+ <div id="slot">
+    <p id="slot_1">0</p>
+    <p id="slot_2">0</p> 
+    <p id="slot_3">0</p>
+   
+ </div>  
+   <button onclick="spin()">SPIN</button>
+    
+</div>
+</body>
