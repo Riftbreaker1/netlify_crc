@@ -1,14 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revision</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem;
+      background: #eef2f6;
+      color: #1d2733;
+      margin: 0;
+    }
+    .container { text-align: center; max-width: 34rem; width: 100%; }
+    .balance {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0.5rem 0 1.5rem;
+    }
+    .balance span { transition: color 0.3s; }
+    .up { color: #1a9a4b; }
+    .down { color: #d23b3b; }
+    .game {
+      background: #fff;
+      border: 2px solid #1d2733;
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .game h2 { margin-top: 0; }
+    .hint { font-size: 0.9rem; color: #5a6675; margin-top: 0; }
+
+    /* Slots */
+    #slot {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+    #slot p {
+      margin: 0;
+      width: 4rem;
+      height: 5rem;
+      line-height: 5rem;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: #eef2f6;
+      border: 2px solid #1d2733;
+      border-radius: 8px;
+    }
+
+    button {
+      font-size: 1.1rem;
+      padding: 0.6rem 2rem;
+      border: none;
+      border-radius: 6px;
+      background: #2b5fd9;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button.small { font-size: 0.85rem; padding: 0.35rem 0.8rem; background: #5a6675; }
+    .msg { min-height: 1.5em; font-weight: 600; }
+
+    /* Upgrader */
+    .row {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 0.75rem 0;
+    }
+    .row label { display: flex; flex-direction: column; font-size: 0.9rem; gap: 0.3rem; }
+    .row input[type=number] {
+      width: 7rem;
+      font-size: 1rem;
+      padding: 0.4rem;
+      border: 2px solid #1d2733;
+      border-radius: 6px;
+      text-align: center;
+    }
+    input[type=range] { width: 100%; accent-color: #f5c518; }
+    .payout { font-weight: 600; margin: 0.5rem 0; }
+
+    /* Wheel */
+    .wheel-wrap {
+      position: relative;
+      width: min(260px, 80vw);
+      aspect-ratio: 1;
+      margin: 1rem auto;
+      background: #1c2029;
+      border-radius: 50%;
+    }
+    .wheel-wrap svg { width: 100%; height: 100%; display: block; }
+    #winArc { transition: stroke-dasharray 0.25s; }
+    #pointer {
+      transform-origin: 100px 100px;
+      transform: rotate(0deg);
+    }
+    .wheel-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      pointer-events: none;
+    }
+    .wheel-center .big { font-size: 2rem; font-weight: 800; color: #f5c518; }
+    .wheel-center .small-txt { font-size: 0.8rem; color: #aab3c0; }
+    .wheel-center.win .big { color: #3ddc84; }
+    .wheel-center.lose .big { color: #ff5c5c; }
+    #upBtn { background: #f5c518; color: #1c2029; font-weight: 700; }
+  </style>
+</head>
 <body>
-<div class="container">  
-<h1> Computing/Computer Science </h1>
-  <p id="demo"></p>
- <div id="slot">
-    <p id="slot_1">0</p>
-    <p id="slot_2">0</p> 
-    <p id="slot_3">0</p>
-   
- </div>  
-   <button onclick="spin()">SPIN</button>
-    
-</div>
+  <div class="container">
+    <h1>Computing/Computer Science</h1>
+
+    <div class="balance">
+      Balance: $<span id="balance">100</span>
+      <button class="small" onclick="resetBalance()">Reset</button>
+    </div>
+
+    <!-- SLOT MACHINE -->
+    <div class="game">
+      <h2>Slots</h2>
+      <p class="hint">$10 per spin. Good luck and its definitely accurate and not rigged.</p>
+      <div id="slot">
+        <p id="slot_1">0</p>
+        <p id="slot_2">0</p>
+        <p id="slot_3">0</p>
+      </div>
+      <p id="demo" class="msg"></p>
+      <button id="spinBtn" onclick="spin()">SPIN</button>
+    </div>
+
+    <!-- UPGRADER -->
+    <div class="game">
+      <h2>Upgrader</h2>
+      <p class="hint">It's upgrader, you know how it works.</p>
+
+      <div class="wheel-wrap">
+        <svg viewBox="0 0 200 200">
+          <!-- grey track -->
+          <circle cx="100" cy="100" r="80" fill="none" stroke="#2e3440" stroke-width="14"/>
+          <!-- yellow win zone, starts at the top and runs clockwise -->
+          <circle id="winArc" cx="100" cy="100" r="80" fill="none"
+                  stroke="#f5c518" stroke-width="14"
+                  stroke-dasharray="0 503" transform="rotate(-90 100 100)"/>
+          <!-- pointer that spins around -->
+          <g id="pointer">
+            <line x1="100" y1="12" x2="100" y2="34" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+            <polygon points="93,3 107,3 100,14" fill="#fff"/>
+          </g>
+        </svg>
+        <div class="wheel-center" id="wheelCenter">
+          <span class="big" id="centerBig">50%</span>
+          <span class="small-txt" id="centerSmall">chance</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Bet ($)
+          <input type="number" id="bet" value="10" min="1" step="1">
+        </label>
+        <label>Chance (%)
+          <input type="number" id="chanceNum" value="50" min="1" max="95" step="1">
+        </label>
+      </div>
+      <input type="range" id="chanceSlider" min="1" max="95" step="1" value="50">
+      <p class="payout">Win: $<span id="payoutOut">20</span></p>
+      <p id="upMsg" class="msg"></p>
+      <button id="upBtn" onclick="upgrade()">UPGRADE</button>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- Balance (saved in the browser) ---------- */
+    const START_BALANCE = 100;
+    const balanceEl = document.getElementById("balance");
+    let balance = START_BALANCE;
+
+    try {
+      const saved = localStorage.getItem("revisionBalance");
+      if (saved !== null && !isNaN(parseFloat(saved))) balance = parseFloat(saved);
+    } catch (e) {}
+
+    function showBalance(change) {
+      balanceEl.textContent = balance.toFixed(2).replace(/\.00$/, "");
+      balanceEl.className = change > 0 ? "up" : change < 0 ? "down" : "";
+      try { localStorage.setItem("revisionBalance", balance); } catch (e) {}
+    }
+
+    function changeBalance(amount) {
+      balance = Math.round((balance + amount) * 100) / 100;
+      showBalance(amount);
+    }
+
+    function resetBalance() {
+      balance = START_BALANCE;
+      showBalance(0);
+    }
+
+    showBalance(0);
+
+    /* ---------- Slots ---------- */
+    const SPIN_COST = 10;
+    const TWO_MATCH_PAY = 20;
+    const THREE_MATCH_PAY = 500;
+
+    const slots = [
+      document.getElementById("slot_1"),
+      document.getElementById("slot_2"),
+      document.getElementById("slot_3")
+    ];
+    const demo = document.getElementById("demo");
+    const spinBtn = document.getElementById("spinBtn");
+
+    function randomDigit() {
+      return Math.floor(Math.random() * 10);
+    }
+
+    function spin() {
+      if (balance < SPIN_COST) {
+        demo.textContent = "BROKIEEEE";
+        return;
+      }
+      changeBalance(-SPIN_COST);
+      spinBtn.disabled = true;
+      demo.textContent = "Spinning...";
+
+      let ticks = 0;
+      const timer = setInterval(() => {
+        slots.forEach(s => s.textContent = randomDigit());
+        ticks++;
+        if (ticks >= 15) {
+          clearInterval(timer);
+          finishSpin();
+        }
+      }, 60);
+    }
+
+    function finishSpin() {
+      const v = slots.map(s => s.textContent);
+
+      if (v[0] === v[1] && v[1] === v[2]) {
+        changeBalance(THREE_MATCH_PAY);
+        demo.textContent = "GOLD GOLD GOLD! $" + THREE_MATCH_PAY + "!";
+     } else if (v[0] === v[1] || v[1] === v[2] || v[0] === v[2]) {
+        const pay = Math.round((TWO_MATCH_PAY - (0.5 + Math.random() * 4.5)) * 100) / 100;
+        changeBalance(pay);
+        demo.textContent = "Double! Enjoy like $" + pay + " or something, I'm rounding.";
+     } else {
+        demo.textContent = "Hah loser what did you expect. $" + SPIN_COST + ".";
+      }
+      spinBtn.disabled = false;
+    }
+
+    /* ---------- Upgrader (wheel) ---------- */
+    const betEl = document.getElementById("bet");
+    const chanceNum = document.getElementById("chanceNum");
+    const chanceSlider = document.getElementById("chanceSlider");
+    const payoutOut = document.getElementById("payoutOut");
+    const winArc = document.getElementById("winArc");
+    const pointer = document.getElementById("pointer");
+    const wheelCenter = document.getElementById("wheelCenter");
+    const centerBig = document.getElementById("centerBig");
+    const centerSmall = document.getElementById("centerSmall");
+    const upMsg = document.getElementById("upMsg");
+    const upBtn = document.getElementById("upBtn");
+
+    const MIN_CHANCE = 1, MAX_CHANCE = 75;
+    const CIRC = 2 * Math.PI * 80;   // circumference of the ring
+    let pointerAngle = 0;            // keeps growing so it always spins forward
+    let spinning = false;
+
+    function getChance() {
+      let c = parseFloat(chanceNum.value);
+      if (isNaN(c)) c = MIN_CHANCE;
+      return Math.min(MAX_CHANCE, Math.max(MIN_CHANCE, c));
+    }
+
+    // Payout is proportional: bet / chance. 50% doubles, 10% is x10, etc.
+    function getPayout() {
+      const bet = parseFloat(betEl.value) || 0;
+      return Math.round((bet / (getChance() / 100)) * 100) / 100;
+    }
+
+    function refreshOdds() {
+      const chance = getChance();
+      winArc.setAttribute("stroke-dasharray", (CIRC * chance / 100) + " " + CIRC);
+      payoutOut.textContent = getPayout();
+      if (!spinning) {
+        wheelCenter.className = "wheel-center";
+        centerBig.textContent = chance + "%";
+        centerSmall.textContent = "chance";
+      }
+    }
+
+    chanceSlider.addEventListener("input", () => {
+      chanceNum.value = chanceSlider.value;
+      refreshOdds();
+    });
+    chanceNum.addEventListener("input", () => {
+      chanceSlider.value = getChance();
+      refreshOdds();
+    });
+    chanceNum.addEventListener("change", () => {
+      chanceNum.value = getChance();   // snap typed values into range
+      refreshOdds();
+    });
+    betEl.addEventListener("input", refreshOdds);
+
+    function upgrade() {
+      const bet = parseFloat(betEl.value);
+      const chance = getChance();
+      const payout = getPayout();
+
+      if (!(bet > 0)) { upMsg.textContent = "Bro wants free money."; return; }
+      if (bet > balance) { upMsg.textContent = "You greedy pig. Check balance."; return; }
+
+      changeBalance(-bet);
+      spinning = true;
+      upBtn.disabled = true;
+      betEl.disabled = chanceNum.disabled = chanceSlider.disabled = true;
+      upMsg.textContent = "";
+      wheelCenter.className = "wheel-center";
+      centerBig.textContent = "...";
+      centerSmall.textContent = "rolling";
+
+      const roll = Math.random();          // 0 to 1 around the wheel
+      const win = roll < chance / 100;     // inside the yellow zone
+
+      // Spin 4 full turns, then stop on the roll (0deg = top, clockwise)
+      const current = pointerAngle % 360;
+      pointerAngle += 4 * 360 + (roll * 360 - current + 360) % 360;
+      pointer.style.transition = "transform 3s cubic-bezier(0.15, 0.85, 0.25, 1)";
+      pointer.style.transform = "rotate(" + pointerAngle + "deg)";
+
+      setTimeout(() => {
+        if (win) {
+          changeBalance(payout);
+          wheelCenter.className = "wheel-center win";
+          centerBig.textContent = "WIN";
+          centerSmall.textContent = "+$" + payout;
+          upMsg.textContent = "Upgraded! You won $" + payout + ".";
+        } else {
+          wheelCenter.className = "wheel-center lose";
+          centerBig.textContent = "LOSE";
+          centerSmall.textContent = "-$" + bet;
+          upMsg.textContent = "Missed, you lost $" + bet + ".";
+        }
+        spinning = false;
+        upBtn.disabled = false;
+        betEl.disabled = chanceNum.disabled = chanceSlider.disabled = false;
+      }, 3100);
+    }
+
+    refreshOdds();
+  </script>
 </body>
+</html>
