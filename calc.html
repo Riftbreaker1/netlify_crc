@@ -13,17 +13,17 @@
   />
   <style>
     :root {
-      --ink: #171520;
-      --panel: #221e30;
-      --panel-2: #2c2743;
-      --edge: #342e4b;
-      --text: #ece8f3;
-      --muted: #948da6;
-      --accent: #f2b45c;
-      --accent-strong: #f6c074;
-      --accent-ink: #2a2013;
-      --danger: #f2846b;
-      --screen: #100f17;
+      --ink: #171520;              /* Keep - very dark, nearly black */
+      --panel: #003d5c;            /* Dark blue */
+      --panel-2: #004d73;          /* Slightly lighter dark blue */
+      --edge: #006699;             /* Medium-dark blue */
+      --text: #ece8f3;             /* Keep - very light, nearly white */
+      --muted: #948da6;            /* Keep - medium gray */
+      --accent: #00acef;           /* Bright Weezer blue */
+      --accent-strong: #33c1ff;    /* Lighter cyan-blue */
+      --accent-ink: #001a2e;       /* Dark blue for contrast */
+      --danger: #f2846b;           /* Keep - warning red/coral */
+      --screen: #100f17;           /* Keep - nearly black */
       --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
     }
 
@@ -588,7 +588,7 @@
       els.signinError.textContent = "";
 
       if (!name || !password) {
-        els.signinError.textContent = "Enter a username and password.";
+        els.signinError.textContent = "Enter a username and password to access the computing and maths help desk's full features.";
         return;
       }
 
@@ -676,7 +676,7 @@
         if (!emptyNote) {
           const note = document.createElement("div");
           note.className = "empty-note";
-          note.textContent = "Nobody's said anything yet. Break the ice.";
+          note.textContent = "No log avaliable to show";
           els.feed.appendChild(note);
         }
         return;
@@ -726,16 +726,21 @@
       row.appendChild(bubble);
       return row;
     }
+function formatTime(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
 
-    function formatTime(ts) {
-      if (!ts) return "";
-      const d = new Date(ts);
-      let h = d.getHours();
-      const m = String(d.getMinutes()).padStart(2, "0");
-      const ampm = h >= 12 ? "pm" : "am";
-      h = h % 12 || 12;
-      return h + ":" + m + " " + ampm;
-    }
+  const date = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const ampm = h >= 12 ? "pm" : "am";
+  h = h % 12 || 12;
+
+  return `${date}/${month}/${year} ${h}:${m} ${ampm}`;
+}
 
     async function sendMessage(e) {
       if (e) e.preventDefault();
@@ -760,14 +765,14 @@
         });
       } catch {
         els.send.disabled = false;
-        flashInputError("Message didn't send — try again.");
+        flashInputError("Message didn't send - error");
         return;
       }
 
       els.send.disabled = false;
 
       if (res.status === 401) { leaveRoom(); return; }
-      if (!res.ok) { flashInputError("Message didn't send — try again."); return; }
+      if (!res.ok) { flashInputError("Message didn't send- error"); return; }
 
       els.msg.value = "";
       els.msg.focus();
